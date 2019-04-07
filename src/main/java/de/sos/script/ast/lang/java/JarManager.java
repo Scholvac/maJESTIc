@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -68,16 +69,16 @@ public class JarManager {
 		}
 	}
 
-	public void addSourceDirectory(File file) {
-		addSourceDirectory(file, "");
+	public boolean addDirectory(File file) {
+		return addDirectory(file, "");
 	}
-	private void addSourceDirectory(File file, String fqn) {
+	private boolean addDirectory(File file, String fqn) {
 		if (!file.exists())
-			return ;
+			return false;
 		File[] subFiles = file.listFiles();
 		for (File sub : subFiles) {
 			if (sub.isDirectory()) {
-				addSourceDirectory(sub, fqn+sub.getName()+".");
+				addDirectory(sub, fqn+sub.getName()+".");
 			}else if (sub.getName().endsWith(".java")) {
 				String name = sub.getName().substring(0, sub.getName().length()-5); //remove ".java"
 				try {
@@ -85,19 +86,31 @@ public class JarManager {
 				} catch (MalformedURLException e) {
 					e.printStackTrace();
 				}
+			}else if (sub.getName().endsWith(".class")) {
+				String name = sub.getName().substring(0, sub.getName().length()-6); //remove ".class"
+				try {
+					addBinaryClass(QualifiedName.createWithRegEx(fqn+name, "\\."));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		return true;
 	}
 
 	
 
-	public void loadJarFile(File jarFile) {
+	public boolean loadJarFile(File jarFile) {
+		if (jarFile == null)
+			return false;
 		JarFile jar = null;
 		try {
 			URL jarURL = jarFile.toURI().toURL();
 			if (mLoadedURLS.contains(jarURL))
-				return ;
+				return false;
 			
+			String strURL = jarURL.toString();
+			strURL = "jar:" + strURL + "!/";
 			
 			jar = new JarFile(jarFile);
 			Enumeration<JarEntry> e = jar.entries();
@@ -105,21 +118,22 @@ public class JarManager {
 				ZipEntry entry = e.nextElement();
 				
 				String entryName = entry.getName();
-				if (entryName.endsWith(".class") && entryName.contains("$") == false) {
-					
+				if (entryName.endsWith(".class") && entryName.contains("$") == false) {					
 					QualifiedName fqn = QualifiedName.createWithRegEx(entryName.substring(0, entryName.length()-6), "/");
 					addBinaryClass(fqn);
 				}else if (entryName.endsWith(".java") && entryName.contains("$") == false) {
-					URL url = new URL("jar:" + jarURL + "!" + entryName);
+					String proxyStr = strURL + entryName;
+					URL url = new URL(proxyStr);
 					QualifiedName fqn = QualifiedName.createWithRegEx(entryName.substring(0, entryName.length()-6), "/");
 					addSourceClass(fqn, url);
 				}
 			}
 			
 			mLoadedURLS.add(jarURL);
-			
+			return true;
 		} catch(Exception e){
 			e.printStackTrace();
+			return false;
 		}finally {
 			if (jar != null)
 				try {
@@ -128,7 +142,7 @@ public class JarManager {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-		}	
+		}
 	}
 
 
@@ -189,11 +203,17 @@ public class JarManager {
 
 
 	public JavaType getType(QualifiedName fqn) {
+		return getType(fqn, null);
+	}
+	public JavaType getType(QualifiedName fqn, ArrayList<String> typeArguments) {
 		String className = fqn.lastSegment();
 		Package p = getPackage(fqn.removeSegmentsFromEnd(1));
 		if (p == null)
 			return null;
-		return p.getType(className);
+		JavaType jt = p.getType(className);
+		if (typeArguments != null && typeArguments.isEmpty())
+			jt.setArguments(typeArguments);
+		return jt;
 	}
 	
 	public Collection<Package> getAllPackages() {
@@ -208,6 +228,38 @@ public class JarManager {
 		}
 		return null;
 	}
+
+	public boolean addSources(URL url) {
+		return loadURL(url); //the distinction between source and binary is actually done depending on the included files
+	}
+
+	public boolean addBinaries(URL url) {
+		return loadURL(url); //the distinction between source and binary is actually done depending on the included files 
+	}
+
+	private boolean loadURL(URL url) {
+		if (url == null)
+			return false;
+		final String strFile = url.getFile();
+		if (strFile != null && strFile.isEmpty() == false) {
+			File f = new File(strFile);
+			if (f.exists() && f.canRead())
+				return loadFile(f);
+		}
+		//TODO: do we have other sources we have to consider?
+		return false; 
+	}
+
+	private boolean loadFile(File file) {
+		if (file.isFile() && file.getName().endsWith(".jar"))
+			return loadJarFile(file);
+		else if (file.isDirectory()) {
+			return addDirectory(file);
+		}
+		return false;
+	}
+
+	
 
 
 }

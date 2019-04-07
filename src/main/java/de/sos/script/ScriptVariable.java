@@ -6,7 +6,7 @@ import java.util.List;
 
 import de.sos.script.ast.TypeManager;
 
-public class ScriptVariable {
+public class ScriptVariable implements IScriptVariable {
 	public static enum VariableDirection {
 		IN, OUT, INOUT
 	}
@@ -15,6 +15,7 @@ public class ScriptVariable {
 	private final Class<?>			mClazz;
 	private Object					mValue;
 	private VariableDirection		mDirection;
+	private String mDescription;
 	
 	public ScriptVariable(final String name) {
 		this(name, null, Object.class, VariableDirection.INOUT);
@@ -35,9 +36,25 @@ public class ScriptVariable {
 		mClazz = expectedType;
 	}
 	
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptVariable#getName()
+	 */
+	@Override
 	public String getName() { return mName; }
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptVariable#getValue()
+	 */
+	@Override
 	public Object getValue() { return mValue; }
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptVariable#getDirection()
+	 */
+	@Override
 	public VariableDirection getDirection() { return mDirection; }
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptVariable#getExpectedType()
+	 */
+	@Override
 	public Class<?> getExpectedType() { return mClazz; }
 	
 	
@@ -46,11 +63,19 @@ public class ScriptVariable {
 		mDirection = direction;
 		return old;
 	}
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptVariable#setValue(java.lang.Object)
+	 */
+	@Override
 	public Object setValue(Object newValue) {
 		Object old = mValue;
 		mValue = newValue;
 		return old;
 	}
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptVariable#getStringValue()
+	 */
+	@Override
 	public String getStringValue() {
 		return "" + getValue();
 	}
@@ -91,4 +116,8 @@ public class ScriptVariable {
 			}
 		}
 	}
+	public void setDescription(String description) {
+		mDescription = description;
+	}
+	public String getDescription() { return mDescription; }
 }

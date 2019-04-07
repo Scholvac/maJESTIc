@@ -7,25 +7,34 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.undo.CompoundEdit;
 
 import org.fife.ui.rsyntaxtextarea.ErrorStrip;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.Gutter;
 import org.fife.ui.rtextarea.GutterIconInfo;
 import org.fife.ui.rtextarea.IconRowHeader;
 import org.fife.ui.rtextarea.RTextScrollPane;
+import org.fife.ui.rtextarea.RUndoManager;
 
 import de.sos.common.param.ParameterContext;
+import de.sos.script.EntryPoint;
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScriptManager;
+import de.sos.script.IScriptSource;
 import de.sos.script.ScriptManager;
-import de.sos.script.ScriptSource;
 import de.sos.script.impl.lang.js.JSScriptManager;
 import de.sos.script.impl.lang.py.PyScriptManager;
 import de.sos.script.run.dbg.BreakPoint;
@@ -33,6 +42,7 @@ import de.sos.script.ui.UIController.IContentEditor;
 import de.sos.script.ui.UIDebugController.DebugEvent;
 import de.sos.script.ui.UIDebugController.DebugEventType;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 
 public class ScriptEditorPanel extends JPanel implements IContentEditor {
 
@@ -69,8 +79,10 @@ public class ScriptEditorPanel extends JPanel implements IContentEditor {
 	private ImageIcon				mProgramCounterIcon;
 	
 	
-	private Disposable mBreakPointDisp;
-	private GutterIconInfo mDebugIcon;
+	private Disposable 					mBreakPointDisp;
+	private GutterIconInfo 				mDebugIcon;
+	private ScriptEditorUndoableManager mUndoManager;
+	
 	
 	public ScriptEditorPanel(UIController controller) {
 		super();
@@ -87,7 +99,11 @@ public class ScriptEditorPanel extends JPanel implements IContentEditor {
 		int rows = context.getValue(ROW_COUNT, 25);
 		int cols = context.getValue(COLUMN_COUNT, 80);
 		
-		mTextArea = new RSyntaxTextArea(rows, cols);
+		mTextArea = new RSyntaxTextArea(rows, cols) {
+			protected RUndoManager createUndoManager() {
+				return mUndoManager = new ScriptEditorUndoableManager(this, 300);
+			};
+		};
 		mTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_NONE);
 		mTextArea.setCodeFoldingEnabled(context.getValue(CODE_FOLDING, true));
 		mTextArea.setMarkOccurrences(context.getValue(MARK_OCCURENCES, true));
@@ -130,6 +146,39 @@ public class ScriptEditorPanel extends JPanel implements IContentEditor {
 		mController.setContentProvider(this);
 	}
 
+	public Disposable subscribeEdit(final Consumer<CompoundEdit> consumer) {
+		return mUndoManager.subscribeEdit(consumer);
+	}
+	
+	public void applyTheme(Theme theme) {
+		if (theme != null)
+			theme.apply(mTextArea);
+	}
+	
+	public void setPreferedRows(int rows) {
+		mTextArea.setRows(rows);
+	}
+	
+	
+	public boolean canRedo() {
+		return mTextArea != null ? mTextArea.canRedo() : false;
+	}
+	public void redoLastAction() {
+		if (mTextArea != null){
+			mTextArea.redoLastAction();
+		}
+	}
+	
+	public boolean canUndo() { return mTextArea != null ? mTextArea.canUndo(): false; }
+	public void undoLastActions() { 
+		if (mTextArea != null)
+			mTextArea.undoLastAction();
+	}
+	
+	public Document getDocument() {
+		return mTextArea != null ? mTextArea.getDocument() : null;
+	}
+	
 	private void connectController(UIController controller) {
 		UIDebugController dbgC = controller.getDebugController();
 		mBreakPointDisp = dbgC.subscribeBreakPointChanges(pcl -> updateBreakpoints());
@@ -191,13 +240,12 @@ public class ScriptEditorPanel extends JPanel implements IContentEditor {
 	}
 	
 	private void _updateBreakpoints() {
-		Collection<BreakPoint> all = IScriptManager.theInstance.getAllBreakPoints();
+		List<BreakPoint> scriptBreakPoints = ScriptManager.theInstance.getBreakPointsForScript(mController.getIdentifier());
 		Set<BreakPointIcon> toDelete = new HashSet<>(mBreakPointItems);
 		Set<BreakPointIcon> toAdd = new HashSet<>();
-		String this_id = ScriptManager.getBreakPointIdentifier(mController.getIdentifier());
-		for (BreakPoint bp : all) {
-			if (bp.sourceIdentifier.equals(this_id) == false)
-				continue; //shall remain in toDelete - if another file has been loaded
+		
+		
+		for (BreakPoint bp : scriptBreakPoints) {
 			BreakPointIcon bpi = getBreakPointIcon(bp);
 			if (bpi != null) {
 				toDelete.remove(bpi);
@@ -247,30 +295,35 @@ public class ScriptEditorPanel extends JPanel implements IContentEditor {
 	}
 
 	@Override
-	public boolean changeSource(ScriptSource source) {		
+	public boolean changeSource(final IScriptSource source, final IEntryPoint ep) {		
 		if (SwingUtilities.isEventDispatchThread())
-			_setContent(source);
+			_setContent(source, ep);
 		else
 			SwingUtilities.invokeLater(new Runnable() {				
 				@Override
 				public void run() {
-					_setContent(source);
+					_setContent(source, ep);
 				}
 			});
 		return true;
 	}
 
-	protected void _setContent(ScriptSource source) {
+	protected void _setContent(IScriptSource source, IEntryPoint ep) {
 		String txt = source != null ? source.getContentAsString() : "";
-		mTextArea.setText(txt);
+		//we do not want the undo manager to undo the first insert
+		mUndoManager.enable(false);
+		mTextArea.setText(txt != null ? txt : "");
+		mUndoManager.enable(true);
 		//change layout settings
 		if (source != null) {
 			final String lang = source.getLanguage();
 			final IScriptManager smgr = ScriptManager.theInstance.getManagerForExtension(lang);
 			if (smgr != null) {
 				mLanguageSupport.setScriptManager(smgr);
+				mLanguageSupport.setEntryPoint(ep);
 			}
 			mTextArea.setSyntaxEditingStyle(getSyntaxConstant(lang));
+			
 		}
     	
     	_updateBreakpoints();
@@ -279,13 +332,16 @@ public class ScriptEditorPanel extends JPanel implements IContentEditor {
 
 
 	private String getSyntaxConstant(String lang) {
-		if (lang.equals(JSScriptManager.LANG_JAVASCRIPT))
-			return SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT;
-		if (lang.equals("Java"))
-			return SyntaxConstants.SYNTAX_STYLE_JAVA;
-		if (lang.equals(PyScriptManager.LANG_JYPTHON))
-			return SyntaxConstants.SYNTAX_STYLE_PYTHON;
+		if (lang != null) {
+			if (lang.equals(JSScriptManager.LANG_JAVASCRIPT))
+				return SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT;
+			if (lang.equals("Java"))
+				return SyntaxConstants.SYNTAX_STYLE_JAVA;
+			if (lang.equals(PyScriptManager.LANG_JYPTHON))
+				return SyntaxConstants.SYNTAX_STYLE_PYTHON;
+		}
 		return SyntaxConstants.SYNTAX_STYLE_NONE;
 	}
+
 	
 }

@@ -11,9 +11,10 @@ import org.mozilla.javascript.ScriptableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.sos.script.EntryPoint;
 import de.sos.script.ExecutionResult;
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScript;
+import de.sos.script.IScriptVariable;
 import de.sos.script.ScriptVariable;
 import de.sos.script.ScriptVariable.VariableDirection;
 import de.sos.script.run.IScriptExecuter;
@@ -31,6 +32,8 @@ public class RhinoReleaseExecutor implements IScriptExecuter {
 	protected final ExecutionResult 	mResult;
 	
 	private Context						mContext;
+	private Thread						mContextThread;
+	
 	protected ScriptableObject 			mScope;
 	
 	private HashMap<String, Function>	mFunctions = new HashMap<>();
@@ -46,6 +49,7 @@ public class RhinoReleaseExecutor implements IScriptExecuter {
 	
 	
 	protected Context createNewContext() {
+		mContextThread = Thread.currentThread();
 		Context context = Context.enter();
 		context.setDebugger(null, null);
 		context.setGenerateObserverCount(false);
@@ -71,7 +75,7 @@ public class RhinoReleaseExecutor implements IScriptExecuter {
 
 
 
-	private Function getFunction(EntryPoint entryPoint) {
+	private Function getFunction(IEntryPoint entryPoint) {
 		final String fn = entryPoint.getFunctionName();
 		Function res = mFunctions.get(fn);
 		if (res == null) {
@@ -89,9 +93,16 @@ public class RhinoReleaseExecutor implements IScriptExecuter {
 	}
 	
 	@Override
-	public ExecutionResult executeScript(EntryPoint entryPoint) {
+	public ExecutionResult executeScript(IEntryPoint entryPoint) {
 		if (mLog.isTraceEnabled()) mLog.trace("execute script {} with entry point {}", mScript.getIdentifier(), entryPoint);
-		//TODO: check the method name
+
+		//check the context and if invalid, rebuild it
+		if (mContext != null) {
+			if (mContextThread!=Thread.currentThread()) {
+				mContext = createNewContext();
+			}
+		}
+		
 		if (!isCompiled()) {
 			compile();
 		}
@@ -105,7 +116,7 @@ public class RhinoReleaseExecutor implements IScriptExecuter {
 			writeVariables(entryPoint);
 			
 			Function func = getFunction(entryPoint);
-			Object[] arguments = getArguments(entryPoint);
+			final Object[] arguments = entryPoint.getArgumentValues(); //getArguments(entryPoint);
 			Object scriptResult = func.call(mContext, mScope, func, arguments);
 			
 			readVariables(entryPoint, mResult);				
@@ -137,46 +148,45 @@ public class RhinoReleaseExecutor implements IScriptExecuter {
 	
 
 
-	public Object[] getArguments(EntryPoint ep) {
-		List<ScriptVariable> args = ep.getFunctionParameter();
-		//we just create the array and have to skip the name
-		if (args == null || args.isEmpty())
-			return new Object[] {};
-		Object[] arguments = new Object[args.size()];
-		for (int i = 0; i < arguments.length; i++) {
-			Scriptable aw = JavaAdapter.createAdapterWrapper(mScope, args.get(i).getValue());
-			arguments[i] = args.get(i).getValue();
-		}
-		return arguments;
-	}
+//	public Object[] getArguments(IEntryPoint ep) {
+//		List<IScriptVariable> args = ep.getFunctionParameter();
+//		//we just create the array and have to skip the name
+//		if (args == null || args.isEmpty())
+//			return new Object[] {};
+//		Object[] arguments = new Object[args.size()];
+//		for (int i = 0; i < arguments.length; i++) {
+//			Scriptable aw = JavaAdapter.createAdapterWrapper(mScope, args.get(i).getValue());
+//			arguments[i] = args.get(i).getValue();
+//		}
+//		return arguments;
+//	}
 
 
 
-	public void writeVariables(EntryPoint ep) {
-		final List<ScriptVariable> list = ep.getVariables();
-		if (list == null) return ;
-		for (int i = 0; i < list.size(); i++) {
+	public void writeVariables(IEntryPoint ep) {
+		String[] names = ep.getVariableNames();
+		if (names.length == 0)
+			return ;
+		Object[] values = ep.getVariableValues();
+		if (names == null || values == null || values.length != names.length)
+			throw new IllegalArgumentException("Variable lists does not match");
+
+		for (int i = 0; i < names.length; i++) {
 			//we do write each object, thereby it does not matter if we have a direction
 			//as we need the variable anyhow (in case of OUT-direction)
 			//the direction is only used, when reading back the values
-			ScriptVariable var = list.get(i);
-			mScope.put(var.getName(), mScope, var.getValue());
+			mScope.put(names[i], mScope, values[i]);
 		}		
 	}
-	public void readVariables(EntryPoint ep, ExecutionResult result) {
-		final List<ScriptVariable> list = ep.getVariables();
-		if (list == null) return ;
-		for (int i = 0; i < list.size(); i++) {
-			final ScriptVariable var = list.get(i);
-			//at this point we do only read those variables, that are tagged either with 
-			//OUT or INOUT
-			if (var.getDirection() == VariableDirection.IN)
-				continue; 
-			final String varName = var.getName();
-			Object value = mScope.get(varName, mScope);
-			Object old = var.setValue(value);
-			result.add(var, old);
+	public void readVariables(IEntryPoint ep, ExecutionResult result) {
+		String[] names = ep.getReadBackNames();
+		if (names.length == 0)
+			return ;
+		Object[] values = new Object[names.length];
+		for (int i = 0; i < names.length; i++) {
+			values[i] = mScope.get(names[i], mScope);
 		}
+		ep.writeVariableValues(names, values);
 	}
 
 

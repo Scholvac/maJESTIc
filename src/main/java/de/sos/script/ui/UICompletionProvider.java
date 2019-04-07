@@ -15,6 +15,8 @@ import org.fife.ui.autocomplete.CompletionProvider;
 import org.fife.ui.autocomplete.CompletionProviderBase;
 import org.fife.ui.autocomplete.ParameterizedCompletion;
 
+import de.sos.script.EntryPoint;
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScript;
 import de.sos.script.support.ScriptCompletionProvider;
 import de.sos.script.support.completions.ICompletion;
@@ -25,12 +27,16 @@ public class UICompletionProvider extends CompletionProviderBase implements Comp
 	private UIParser						mParser = null;
 	private ScriptCompletionProvider 		mDelegate = new ScriptCompletionProvider();
 	protected Segment 						mSegment = new Segment();
-	
+	private IEntryPoint						mEntryPoint = null;
 		
 	public UICompletionProvider(UIParser parser) {
 		super();
 		setParameterizedCompletionParams('(', ", ", ')');
 		mParser = parser;
+	}
+	
+	public void setEntryPoint(IEntryPoint ep) {
+		mEntryPoint = ep;
 	}
 
 	@Override
@@ -83,6 +89,7 @@ public class UICompletionProvider extends CompletionProviderBase implements Comp
 	protected List<Completion> getCompletionsImpl(JTextComponent comp) {
 		int pos = mSegment.getEndIndex();
 		IScript uiScript = mParser.reparseScript(comp);
+		uiScript.setEntryPoint(mEntryPoint);//this may be null
 		List<ICompletion> completions = mDelegate.getCompletions(uiScript, pos);
 		return convertCompletions(completions);
 	}

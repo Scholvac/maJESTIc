@@ -35,7 +35,7 @@ public class RhinoFunctionNoParameter {
 
 	
 	public void setup() {
-		JarManager.get().addSourceDirectory(new File("src/test/java"));
+		JarManager.get().addDirectory(new File("src/test/java"));
 	}
 	
 	@Test

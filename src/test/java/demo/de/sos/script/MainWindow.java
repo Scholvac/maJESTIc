@@ -51,8 +51,8 @@ public class MainWindow {
 			public void run() {
 				try {
 					JarManager jmgr = JarManager.get();
-					jmgr.addSourceDirectory(new File("src/main/java"));
-					jmgr.addSourceDirectory(new File("src/test/java"));
+					jmgr.addDirectory(new File("src/main/java"));
+					jmgr.addDirectory(new File("src/test/java"));
 					
 					UIController controller = new UIController(new ParameterContext());
 					MainWindow window = new MainWindow(controller);
@@ -73,7 +73,7 @@ public class MainWindow {
 			String lo = new String(Files.readAllBytes(f.toPath()));
 			f = new File(lo);
 			if (f.exists())
-				controller.setSource(new ScriptSource.FileSource(f));
+				controller.setSource(new ScriptSource.FileSource(f), null);
 		}		
 	}
 

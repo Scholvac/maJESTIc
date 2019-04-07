@@ -5,6 +5,7 @@ import java.util.function.Function;
 
 import org.slf4j.event.Level;
 
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScript;
 import de.sos.script.IScriptManager;
 import de.sos.script.ScriptManager;
@@ -100,7 +101,23 @@ public class JSScriptManager extends AbstractScriptManager implements IScriptMan
 	
 	
 	
-	
+	@Override
+	public String createTemplate(IEntryPoint entryPoint) {
+		if (entryPoint == null)
+			return "";
+		StringBuilder sb = new StringBuilder("function ");
+		sb.append(entryPoint.getFunctionName());
+		sb.append("(");
+		String[] argNames = entryPoint.getArgumentNames();
+		String sig = "";
+		for (String arg : argNames)
+			sig += arg + ", ";
+		if (sig.length() > 2)
+			sig = sig.substring(0, sig.length()-2);//remove ", "
+		sb.append(sig);
+		sb.append(")\n{\n\t//TODO: insert your script content here \n\t/*return some value */\n}");
+		return sb.toString();
+	}
 	
 	
 	
@@ -135,6 +152,8 @@ public class JSScriptManager extends AbstractScriptManager implements IScriptMan
 		 registerNativeFunction("isErrorEnabled", doc.replace("LEVEL", "ERROR"), boolean.class, new IsLogFunction(Level.ERROR));
 		
 	}
+
+
 
 
 }

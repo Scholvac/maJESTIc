@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import de.sos.script.IScript;
 import de.sos.script.IScriptManager;
-import de.sos.script.ScriptSource;
+import de.sos.script.IScriptSource;
 import de.sos.script.ScriptSource.StringSource;
 import de.sos.script.ast.ASTFuncCall;
 import de.sos.script.ast.ASTNode;
@@ -38,7 +38,7 @@ public class ScriptCompletionProvider {
 		if (script == null || _pos < 0 || _pos > script.getLength())
 			return null;
 		//first extract the full statement for which the completion is intended
-		final ScriptSource source = script.getSource();
+		final IScriptSource source = script.getSource();
 		final String compilable_content = source.getContentAsString();
 		return getCompletions(script, _pos, compilable_content.substring(0, _pos));
 	}
@@ -83,7 +83,8 @@ public class ScriptCompletionProvider {
 			ASTNode posNode = last.getNodeForIndex(localPos);
 			if (posNode == null)
 				posNode = last.getNodeForIndex(localPos-1);
-			
+			if (posNode == null)
+				posNode = last;
 			
 			
 			if (posNode != null) {			

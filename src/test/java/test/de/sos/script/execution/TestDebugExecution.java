@@ -12,8 +12,10 @@ import org.junit.Test;
 
 import de.sos.script.EntryPoint;
 import de.sos.script.ExecutionResult;
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScript;
 import de.sos.script.IScriptManager;
+import de.sos.script.IScriptVariable;
 import de.sos.script.ScriptManager;
 import de.sos.script.ScriptVariable;
 import de.sos.script.ScriptVariable.VariableDirection;
@@ -95,7 +97,7 @@ public class TestDebugExecution {
 		};
 		IScript script = IScriptManager.loadScript(file);
 		assertNotNull(script);
-		EntryPoint ep = new EntryPoint("eval", EntryPoint.var().add("origin", new Coordinate(10, 10, 10)).get(), null);
+		IEntryPoint ep = new EntryPoint("eval", EntryPoint.var().add("origin", new Coordinate(10, 10, 10)).get(), null);
 		IScriptDebugExecutor executor = IScriptManager.theInstance.createDebugExecutor(script);
 		assertNotNull(executor);
 		executor.setDebugCallback(dbgc);
@@ -139,7 +141,7 @@ public class TestDebugExecution {
 					String n = list.get(i).getName();
 					boolean found = false;
 					for (int j = 0; j < variables.size(); j++) {
-						ScriptVariable sv = variables.get(j);
+						IScriptVariable sv = variables.get(j);
 						if (sv.getName().equals(n)) {
 							found = true; break;
 						}
@@ -152,7 +154,7 @@ public class TestDebugExecution {
 		};
 		IScript script = IScriptManager.loadScript(file);
 		assertNotNull(script);
-		EntryPoint ep = new EntryPoint("eval", EntryPoint.var().add("origin", new Coordinate(10, 10, 10)).get(), null);
+		IEntryPoint ep = new EntryPoint("eval", EntryPoint.var().add("origin", new Coordinate(10, 10, 10)).get(), null);
 		IScriptDebugExecutor executor = IScriptManager.theInstance.createDebugExecutor(script);
 		assertNotNull(executor);
 		executor.setDebugCallback(dbgc);

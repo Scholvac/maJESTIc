@@ -12,9 +12,10 @@ import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.sos.script.EntryPoint;
 import de.sos.script.ExecutionResult;
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScript;
+import de.sos.script.IScriptVariable;
 import de.sos.script.ScriptVariable;
 import de.sos.script.ScriptVariable.VariableDirection;
 import de.sos.script.run.IScriptExecuter;
@@ -55,7 +56,7 @@ public class JythonReleaseExecutor implements IScriptExecuter {
 		return script.getIdentifier() + "_PyRelFunc";
 	}
 
-	private PyObject getFunction(EntryPoint entryPoint) {
+	private PyObject getFunction(IEntryPoint entryPoint) {
 		final String fn = entryPoint.getFunctionName();
 		PyObject res = mFunctions.get(fn);
 		if (res == null) {
@@ -72,7 +73,7 @@ public class JythonReleaseExecutor implements IScriptExecuter {
 	
 			
 	@Override
-	public ExecutionResult executeScript(final EntryPoint entryPoint) {
+	public ExecutionResult executeScript(final IEntryPoint entryPoint) {
 		if (mLog.isTraceEnabled()) mLog.trace("execute script {} with entry point {}", mScript.getIdentifier(), entryPoint);
 		//TODO: check the method name
 		if (!isCompiled()) {
@@ -112,15 +113,23 @@ public class JythonReleaseExecutor implements IScriptExecuter {
 		return Py.getThreadState();
 	}
 
-	public void writeVariables(final EntryPoint ep) {
-		final List<ScriptVariable> list = ep.getVariables();
-		if (list == null) return ;
-		for (int i = 0; i < list.size(); i++) {
+	
+	
+	
+	
+	
+	public void writeVariables(final IEntryPoint ep) {
+		String[] names = ep.getVariableNames();
+		if (names.length == 0)
+			return ;
+		Object[] values = ep.getVariableValues();
+		if (names == null || values == null || values.length != names.length)
+			throw new IllegalArgumentException("Variable lists does not match");
+		for (int i = 0; i < names.length; i++) {
 			//we do write each object, thereby it does not matter if we have a direction
 			//as we need the variable anyhow (in case of OUT-direction)
 			//the direction is only used, when reading back the values
-			ScriptVariable var = list.get(i);
-			mEval.__setattr__(var.getName(), Py.java2py(var.getValue()));
+			mEval.__setattr__(names[i], Py.java2py(values[i]));
 		}
 	}
 
@@ -130,31 +139,24 @@ public class JythonReleaseExecutor implements IScriptExecuter {
 		return res.__tojava__(Object.class);
 	}
 
-	public void readVariables(final EntryPoint ep, ExecutionResult result) {
-		final List<ScriptVariable> list = ep.getVariables();
-		if (list == null) return ;
-		for (int i = 0; i < list.size(); i++) {
-			final ScriptVariable var = list.get(i);
-			//at this point we do only read those variables, that are tagged either with 
-			//OUT or INOUT
-			if (var.getDirection() == VariableDirection.IN)
-				continue; 
-			final String varName = var.getName();
-			PyObject py_value = mEval.__getattr__(varName);
-			Object old = var.setValue(convertResult(py_value));
-			result.add(var, old);
+	public void readVariables(final IEntryPoint ep, ExecutionResult result) {
+		String[] names = ep.getReadBackNames();
+		if (names.length == 0)
+			return ;
+		Object[] values = new Object[names.length];
+		for (int i = 0; i < names.length; i++) {
+			PyObject py_value = mEval.__getattr__(names[i]);
+			values[i] = convertResult(py_value);
 		}
+		ep.writeVariableValues(names, values);
 	}
 
-	public PyObject[] getArguments(final EntryPoint ep) {
-		List<ScriptVariable> args = ep.getFunctionParameter();
+	public PyObject[] getArguments(final IEntryPoint ep) {
+		Object[] args = ep.getArgumentValues();
 		//we just create the array and have to skip the name
-		if (args == null || args.isEmpty())
+		if (args == null || args.length == 0)
 			return null;
-		PyObject[] arguments = new PyObject[args.size()];
-		for (int i = 0; i < arguments.length; i++)
-			arguments[i] = Py.java2py(args.get(i).getValue());
-		return arguments;
+		return Py.javas2pys(args);
 	}
 
 

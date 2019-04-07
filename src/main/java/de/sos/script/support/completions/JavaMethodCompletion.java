@@ -45,7 +45,7 @@ public class JavaMethodCompletion implements ICompletion {
 		Optional<Comment> comment = mMethod.getComment();
 		if (comment.isPresent())
 			return comment.get().toString();
-		return "no documentation available";
+		return "<p><strong>no documentation available</strong></p>";
 	}
 
 	@Override

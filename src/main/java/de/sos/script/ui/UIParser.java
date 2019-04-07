@@ -52,7 +52,12 @@ public class UIParser extends AbstractParser {
 	
 	@Override
 	public ParseResult parse(RSyntaxDocument doc, String style) {
-		
+		if (mScriptManager == null) {
+			if (mParseResult == null)
+				mParseResult = new DefaultParseResult(this);
+			mParseResult.clearNotices();
+			return mParseResult;
+		}
 		Element root = doc.getDefaultRootElement();
 		int lineCount = root.getElementCount();
 		DocumentReader r = new DocumentReader(doc);

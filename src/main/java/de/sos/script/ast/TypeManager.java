@@ -1,9 +1,11 @@
 package de.sos.script.ast;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
 import de.sos.script.ast.lang.java.JarManager;
+import de.sos.script.ast.lang.java.JavaType;
 import de.sos.script.impl.QualifiedName;
 
 public class TypeManager {
@@ -53,13 +55,20 @@ public class TypeManager {
 		}
 	}
 	
-	public IType getType(final QualifiedName fqn){
+	public IType getType(final QualifiedName fqn) {
+		return getType(fqn, new ArrayList<>());
+	}
+	public IType getType(final QualifiedName fqn, ArrayList<String> typeArguments){
 		if (fqn.numSegments() == 1) {
 			IType t = BuildInTypes.getType(fqn.firstSegment());
 			if (t != null)
 				return t;
 		}
 		String fqn_str = fqn.toString(".");
+		if (typeArguments != null && typeArguments.isEmpty() == false) {
+			for (String ta : typeArguments)
+				fqn_str += ta;
+		}
 		IType t = mTypes.get(fqn_str);
 		if (t != null)
 			return t;
@@ -67,22 +76,29 @@ public class TypeManager {
 		t = mTypesSimpleNames.get(fqn_str);
 		if (t != null)
 			return t;
-		t = getJarManager().getType(fqn);
+		t = getJarManager().getType(fqn, typeArguments);
 		if (t != null)
 			return t;
-		if (fqn.numSegments() == 1)
-			return getJarManager().searchSimpleName(fqn_str);
+		if (fqn.numSegments() == 1) {
+			IType jt = getJarManager().searchSimpleName(fqn.firstSegment());
+			if (jt != null && jt instanceof JavaType) {
+				((JavaType)jt).setArguments(typeArguments);
+				mTypesSimpleNames.put(fqn_str, jt);
+			}
+			return jt;
+//			return getJarManager().searchSimpleName(fqn_str);
+		}
 		return null;
 	}
 
 	public IType getType(String fqn) {
-		return getType(QualifiedName.createWithRegEx(fqn, "\\."));
+		return getType(QualifiedName.createWithRegEx(fqn, "\\."), new ArrayList<>());
 	}
 
 	public IType getType(Class<?> clazz) {
 		if (clazz == null) 
 			return null;
-		return getType(QualifiedName.createWithRegEx(clazz.getName(), "\\."));
+		return getType(QualifiedName.createWithRegEx(clazz.getName(), "\\."), new ArrayList<>());
 	}
 
 //	public ITypeResolver getType(Class<?> c) {
@@ -106,6 +122,8 @@ public class TypeManager {
 		return sPrimitiveTypes.contains(clazz);
 	}
     public static boolean inherits(Class<?> clazz, Class<?> parent) {
+    	if (clazz == null || parent == null)
+    		return false;
         if (clazz == parent)
             return true;
         if (clazz.getSuperclass() == parent)

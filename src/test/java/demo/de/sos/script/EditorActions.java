@@ -14,6 +14,7 @@ import javax.swing.JFrame;
 import javax.swing.KeyStroke;
 import javax.swing.filechooser.FileFilter;
 
+import de.sos.script.IScriptSource;
 import de.sos.script.ScriptSource;
 import de.sos.script.ScriptSource.WriteableScriptSource;
 import de.sos.script.ui.UIActions;
@@ -82,7 +83,7 @@ public class EditorActions extends UIActions {
 	}
 	public void save() throws IOException {
 		String newContent = mController.getContentProvider().getScriptContent();
-		ScriptSource source = mController.getSource();
+		IScriptSource source = mController.getSource();
 		if (source != null) {
 			if (source instanceof WriteableScriptSource == false || ((WriteableScriptSource)source).canWrite(newContent) == false)
 				throw new IOException("ScriptSource is readonly");
@@ -95,7 +96,7 @@ public class EditorActions extends UIActions {
 			return false;
 		
 		if (file.canRead()) {
-			return mController.setSource(new ScriptSource.FileSource(file));
+			return mController.setSource(new ScriptSource.FileSource(file), null);
 		}
 		return false;
 	}

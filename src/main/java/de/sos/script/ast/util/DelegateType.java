@@ -14,15 +14,14 @@ public class DelegateType implements IType {
 	private IType 	mType = BuildInTypes.getType("Any");
 	
 	public void setType(IType t) {
-		if (t == null)
-			System.out.println();
-		mType = t; 
+		if (t != null)
+			mType = t; //otherwise "Any" is fine 
 	}
 	public IType getDelegate() { return mType; }
 	
 	@Override
 	public String getName() {
-		return mType.getName();
+		return mType != null ? mType.getName() : "Any";
 	}
 
 	@Override

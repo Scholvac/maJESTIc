@@ -7,47 +7,11 @@ import org.fife.rsta.ac.js.JavaScriptCellRenderer;
 import org.fife.ui.autocomplete.AutoCompletion;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScriptManager;
 
 public class UILanguageSupport extends AbstractLanguageSupport {
 
-	
-//	/**
-//	 * Listens for various events in a text area editing Java (in particular,
-//	 * caret events, so we can track the "active" code block).
-//	 */
-//	private class Listener implements CaretListener, ActionListener {
-//
-//		private RSyntaxTextArea textArea;
-//		private Timer t;
-//
-//		public Listener(RSyntaxTextArea textArea) {
-//			this.textArea = textArea;
-//			textArea.addCaretListener(this);
-//			t = new Timer(650, this);
-//			t.setRepeats(false);
-//		}
-//
-//		@Override
-//		public void actionPerformed(ActionEvent e) {
-////			reparseScript();
-//			System.out.println("Action Performed");
-//		}
-//
-//		@Override
-//		public void caretUpdate(CaretEvent e) {
-//			t.restart();
-//		}
-//
-//		/**
-//		 * Should be called whenever Java language support is removed from a
-//		 * text area.
-//		 */
-//		public void uninstall() {
-//			textArea.removeCaretListener(this);
-//		}
-//
-//	}
 	
 	
 	private IScriptManager 			mScriptManager;
@@ -55,7 +19,6 @@ public class UILanguageSupport extends AbstractLanguageSupport {
 	private AutoCompletion			mAutoCompletion = null;
 	private UICompletionProvider 	mCompletionProvider;
 	private RSyntaxTextArea	 		mTextArea;
-//	private Listener 				mListener;
 	private UIParser				mParser = null;
 	
 
@@ -76,8 +39,10 @@ public class UILanguageSupport extends AbstractLanguageSupport {
 	public void setScriptManager(IScriptManager managerForExtension) {
 		mScriptManager = managerForExtension;
 		mParser.setScriptManager(managerForExtension);
-		
-		
+	}
+	
+	public void setEntryPoint(IEntryPoint ep) {
+		mCompletionProvider.setEntryPoint(ep);
 	}
 	
 	public void setStyle(String constant) {

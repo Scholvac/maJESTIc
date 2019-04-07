@@ -11,6 +11,7 @@ import java.util.TreeSet;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
@@ -20,6 +21,7 @@ import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.Type;
 
 import de.sos.script.ast.ASTFuncDecl;
 import de.sos.script.ast.ASTParamDecl;
@@ -37,6 +39,7 @@ public class JavaType implements IType {
 	private final String				mName;
 	private ClassOrInterfaceDeclaration mClassifier;
 	private Class<?> 					mClazz;
+	private ArrayList<String> 			mTypeArguments;
 
 	public JavaType(final String name, final CompilationUnit cu) {
 		mCompilationUnit = cu;
@@ -57,6 +60,10 @@ public class JavaType implements IType {
 	@Override
 	public String getName() {
 		return mName;
+	}
+	
+	public void setArguments(ArrayList<String> typeArguments) {
+		mTypeArguments = typeArguments;		
 	}
 
 	@Override
@@ -251,15 +258,30 @@ public class JavaType implements IType {
 						params.add(new ASTParamDecl(fd, param.getNameAsString(), param.getTypeAsString(), -1, -1));
 				}
 				fd.setParameters(params);
-				fd.setReturnType(getTypeForName(md.getTypeAsString()));
+				IType rt = getTypeForName(md.getTypeAsString());
+				if (rt == null && mTypeArguments != null) {
+					if (mTypeArguments.size() == 1)
+						rt = getTypeForName(mTypeArguments.get(0));
+				}
+				fd.setReturnType(rt);
 				out.add(fd);
 			}
 			for (ClassOrInterfaceType sup : getAllParents()) {
 				QualifiedName super_type_name = getFullQualifiedType(sup.getNameAsString());
 				if (super_type_name != null) {
-					IType super_type = TypeManager.get().getType(super_type_name);
-					if (super_type != null)
-						out.addAll(super_type.getAllFunctionDeclarations());
+					Optional<NodeList<Type>> args = sup.getTypeArguments();
+					ArrayList<String> typeArguments = new ArrayList<>();
+					if (args.isPresent()) {
+						for (Type t : args.get()) {
+							typeArguments.add(t.asString());
+						}
+					}
+					IType super_type = TypeManager.get().getType(super_type_name, typeArguments);
+					if (super_type != null) {
+						List<ASTFuncDecl> tmp = super_type.getAllFunctionDeclarations();
+						if (tmp != null)
+							out.addAll(tmp);
+					}
 				}
 			}
 			ArrayList<ASTFuncDecl> decls = new ArrayList<>(out);
@@ -305,6 +327,8 @@ public class JavaType implements IType {
 			return true;
 		return false;
 	}
+
+
 
 
 

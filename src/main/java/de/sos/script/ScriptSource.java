@@ -11,7 +11,7 @@ import de.sos.script.impl.lang.js.JSScriptManager;
 import de.sos.script.impl.lang.py.PyScriptManager;
 
 
-public abstract class ScriptSource {
+public abstract class ScriptSource implements IScriptSource {
 
 	
 	
@@ -38,13 +38,21 @@ public abstract class ScriptSource {
 		mIdentifier = identifier;
 	}
 	
-	/** Returns the content of the script as "compilable"/"interpretable" String. 
-	 * 
-	 * @return the source to be compiled
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptSource#getContentAsString()
 	 */
+	@Override
 	public abstract String getContentAsString();
 	
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptSource#getLanguage()
+	 */
+	@Override
 	public String getLanguage() { return mLanguage; }
+	/* (non-Javadoc)
+	 * @see de.sos.script.IScriptSource#getIdentifier()
+	 */
+	@Override
 	public String getIdentifier() { return mIdentifier;}
 	
 	public static abstract class WritableScriptSource extends ScriptSource implements WriteableScriptSource {
@@ -110,16 +118,16 @@ public abstract class ScriptSource {
 		}
 	}
 	public static class FileSource extends WritableScriptSource {
-		private final File 	mFile;
+		protected File 	mFile;
 		
-		private static String languageFromFile(File file) {
+		public static String languageFromFile(File file) {
 			if (file.getName().endsWith(".js"))
 				return JSScriptManager.LANG_JAVASCRIPT;
 			if (file.getName().endsWith(".py"))
 				return PyScriptManager.LANG_JYPTHON;
 			return null;
 		}
-		
+			
 		public FileSource(final File file) {
 			this(file, languageFromFile(file));
 		}
@@ -129,11 +137,15 @@ public abstract class ScriptSource {
 			mFile = file;
 		}
 		
+		public File getFile() {
+			return mFile;
+		}
+		
 		@Override
 		public String getContentAsString() {
 			try {
-				return new String(Files.readAllBytes(mFile.toPath()));
-			} catch (IOException e) {
+				return new String(Files.readAllBytes(getFile().toPath()));
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			return null;
@@ -141,9 +153,10 @@ public abstract class ScriptSource {
 		@Override
 		public boolean writeContent(String content) {
 			try {
-				FileOutputStream fos = new FileOutputStream(mFile);
+				FileOutputStream fos = new FileOutputStream(getFile());
 				fos.write(content.getBytes());
 				fos.close();
+				return true;
 			}catch(Exception e) {
 				e.printStackTrace();
 			}

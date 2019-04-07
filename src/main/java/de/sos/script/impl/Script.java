@@ -1,35 +1,36 @@
 package de.sos.script.impl;
 
 import de.sos.script.EntryPoint;
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScript;
 import de.sos.script.IScriptManager;
-import de.sos.script.ScriptSource;
+import de.sos.script.IScriptSource;
 import de.sos.script.ast.CompilationUnit;
 import de.sos.script.run.IScriptDebugExecutor;
 import de.sos.script.run.IScriptExecuter;
 
 public class Script implements IScript {
 
-	private static EntryPoint		sDefaultEntryPoint = new EntryPoint("main", null, null);
+	private static IEntryPoint		sDefaultEntryPoint = new EntryPoint("main", null, null);
 	
 	private final IScriptManager	mManager;
-	private final ScriptSource		mSource;
+	private final IScriptSource		mSource;
 	
 	
 	private CompilationUnit			mCompilationUnit;
 	private boolean					mInvalidCompilationUnit = true; //true if something on the script has changed but the CU has not been reparsed yet (or not successfully)
 	
-	private EntryPoint				mEntryPoint = sDefaultEntryPoint;
+	private IEntryPoint				mEntryPoint = sDefaultEntryPoint;
 	private IScriptExecuter			mReleaseExecutor;
 	private IScriptDebugExecutor	mDebugExecutor;
 	
-	public Script(final IScriptManager mgr, final ScriptSource source) {
+	public Script(final IScriptManager mgr, final IScriptSource source) {
 		mManager = mgr;
 		mSource = source;
 	}
 	
 	@Override
-	public ScriptSource getSource() {
+	public IScriptSource getSource() {
 		return mSource;
 	}
 	
@@ -53,9 +54,9 @@ public class Script implements IScript {
 	}
 
 	@Override
-	public void setEntryPoint(EntryPoint entryPoint) { mEntryPoint = entryPoint;}
+	public void setEntryPoint(IEntryPoint entryPoint) { mEntryPoint = entryPoint;}
 	@Override
-	public EntryPoint getEntryPoint() { return mEntryPoint; }
+	public IEntryPoint getEntryPoint() { return mEntryPoint; }
 
 	@Override
 	public IScriptExecuter getExecutor() {

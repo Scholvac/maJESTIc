@@ -3,6 +3,8 @@ package de.sos.script;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.mozilla.javascript.NativeJavaObject;
+
 public class ExecutionResult {
 
 
@@ -13,7 +15,7 @@ public class ExecutionResult {
 	private Object			mScriptResult;
 	private long			mStart;
 	private long			mEnd;
-	private List<Object[]>	mVariableChanges = new ArrayList<>();
+	
 
 	public ExecutionResult(final String identifier) {
 		mIdentifier = identifier;
@@ -24,7 +26,10 @@ public class ExecutionResult {
 	}
 
 	public void setScriptResult(final Object scriptResult) {
-		mScriptResult = scriptResult;
+		if (scriptResult != null && scriptResult instanceof NativeJavaObject)
+			mScriptResult = ((NativeJavaObject)scriptResult).unwrap();
+		else
+			mScriptResult = scriptResult;
 	}
 
 	public void tic() {
@@ -34,9 +39,6 @@ public class ExecutionResult {
 		mEnd = System.currentTimeMillis();
 	}
 
-	public void add(final ScriptVariable var, final Object oldValue) {
-		mVariableChanges.add(new Object[] {var, oldValue});
-	}
 
 	public String getIdentifier() { return mIdentifier; }
 	public Object getResult() { return mScriptResult; }
@@ -48,7 +50,6 @@ public class ExecutionResult {
 		mStart = mEnd = -1;
 		mError = null;
 		mScriptResult = null;
-		mVariableChanges.clear();
 	}
 	
 	

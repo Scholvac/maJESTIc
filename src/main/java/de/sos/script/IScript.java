@@ -8,13 +8,13 @@ import de.sos.script.run.dbg.DebuggerCallback;
 
 public interface IScript {
 
-	ScriptSource getSource();
+	IScriptSource getSource();
 
 	CompilationUnit getCompilationUnit();
 	IScriptManager getManager();
 
-	void setEntryPoint(final EntryPoint entryPoint);
-	EntryPoint getEntryPoint();
+	void setEntryPoint(final IEntryPoint entryPoint);
+	IEntryPoint getEntryPoint();
 	
 	IScriptExecuter getExecutor();
 	IScriptDebugExecutor getDebugExecutor();
@@ -31,7 +31,8 @@ public interface IScript {
 	 * @return the language string, given by the script source.
 	 */
 	default String getLanguage() {
-		return getSource().getLanguage();
+//		return getSource().getLanguage();
+		return getManager().getLanguage();
 	}
 	/** 
 	 * Returns the length of the script content
@@ -48,11 +49,15 @@ public interface IScript {
 		if (cu == null) {
 			return null;
 		}
+		IEntryPoint ep = getEntryPoint();
+		if (ep != null) {
+			cu.insertEntryPoint(ep);
+		}
 		return cu.getScopeForIndex(pos);
 	}
 
 	default ExecutionResult execute() { return execute(getEntryPoint()); }
-	default ExecutionResult execute(final EntryPoint ep) {
+	default ExecutionResult execute(final IEntryPoint ep) {
 		IScriptExecuter exec = getExecutor();
 		if (exec != null)
 			return exec.executeScript(ep);
@@ -60,13 +65,17 @@ public interface IScript {
 	}
 	
 	default ExecutionResult debug(DebuggerCallback callback) { return debug(getEntryPoint(), callback); }
-	default ExecutionResult debug(final EntryPoint ep, DebuggerCallback callback) {
+	default ExecutionResult debug(final IEntryPoint ep, DebuggerCallback callback) {
 		IScriptDebugExecutor exec = getDebugExecutor();
 		if (exec != null) {
 			exec.setDebugCallback(callback);
 			return exec.executeScript(ep);
 		}
 		return null;
+	}
+
+	default boolean isDebugSupported() {
+		return getManager().hasDebugSupport(this);
 	}
 
 	

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import de.sos.script.IScriptVariable;
 import de.sos.script.ScriptVariable;
 import de.sos.script.ast.ASTFuncDecl;
 import de.sos.script.ast.ASTParamDecl;
@@ -32,7 +33,7 @@ public class NativeFunctionDeclaration extends ASTFuncDecl {
 
 	private void convertAndAddParameters(List<ScriptVariable> parameters) {
 		ArrayList<ASTParamDecl> astParams = new ArrayList<>();		
-		for (ScriptVariable sv : parameters) {
+		for (IScriptVariable sv : parameters) {
 			String typeHint = sv.getExpectedType() != null ? sv.getExpectedType().getName() : "java.lang.Object";
 			astParams.add(new ASTParamDecl(this, sv.getName(), typeHint, -1, -1));
 		}

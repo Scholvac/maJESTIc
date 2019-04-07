@@ -23,7 +23,7 @@ import org.mozilla.javascript.ast.ReturnStatement;
 import org.mozilla.javascript.ast.VariableDeclaration;
 import org.mozilla.javascript.ast.VariableInitializer;
 
-import de.sos.script.ScriptSource;
+import de.sos.script.IScriptSource;
 import de.sos.script.ast.ASTAssign;
 import de.sos.script.ast.ASTBlock;
 import de.sos.script.ast.ASTFuncCall;
@@ -110,7 +110,7 @@ public class JSASTConverter implements IASTConverter, NodeVisitor {
 		return p.parse(sourceString, sourceURI, lineno);
 	}
 	@Override
-	public CompilationUnit convert(final ScriptSource source, int start, int end) {
+	public CompilationUnit convert(final IScriptSource source, int start, int end) {
 		final String identifier = source.getIdentifier();
 		final String content = source.getContentAsString();
 		if (end < 0) end = content.length();

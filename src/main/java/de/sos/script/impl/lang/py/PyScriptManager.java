@@ -1,5 +1,6 @@
 package de.sos.script.impl.lang.py;
 
+import de.sos.script.IEntryPoint;
 import de.sos.script.IScript;
 import de.sos.script.IScriptManager;
 import de.sos.script.ast.lang.IASTConverter;
@@ -41,6 +42,12 @@ public class PyScriptManager extends AbstractScriptManager implements IScriptMan
 	public int getBlockStartIndex(String content, int pos) {
 		
 		return -1;
+	}
+	
+	@Override
+	public String createTemplate(IEntryPoint entryPoint) {
+		System.out.println("Not yet supported");
+		return null;
 	}
 
 	@Override

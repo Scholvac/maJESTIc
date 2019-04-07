@@ -16,14 +16,17 @@ public interface IScriptManager {
 	static ScriptManager		theInstance = ScriptManager.init();
 	
 	String getLanguage();
-	IScript loadScript(final ScriptSource source);
+	IScript loadScript(final IScriptSource source);
 	
 	
 	SystemScope getSystemScope();
 	
 	boolean hasEditorSupport(final IScript script);
-	CompilationUnit createCompilationUnit(final ScriptSource source);
+	CompilationUnit createCompilationUnit(final IScriptSource source);
 	int getBlockStartIndex(final String content, final int pos);
+	
+	/** Creates an empty script that can be called with the given entry point. */
+	String createTemplate(final IEntryPoint entryPoint);
 	
 	
 	boolean hasDebugSupport(final IScript script);

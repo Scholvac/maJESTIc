@@ -1,11 +1,14 @@
 package de.sos.script.ast;
 
 import java.util.List;
+import java.util.Set;
 
 import de.sos.script.ast.ASTNode.ASTNamedNode;
 import de.sos.script.ast.util.Scope;
+import de.sos.script.support.completions.BaseCompletion;
+import de.sos.script.support.completions.ICompletion;
 
-public class ASTParamDecl extends ASTNamedNode implements ITypeResolver {
+public class ASTParamDecl extends ASTNamedNode implements ITypeResolver, INamedElement {
 
 	private String 	mTypeHint;
 	private IType 	mType = null;
@@ -52,6 +55,19 @@ public class ASTParamDecl extends ASTNamedNode implements ITypeResolver {
 				mType = TypeManager.get().getType(mTypeHint);
 		}
 		return mType;
+	}
+
+
+	@Override
+	public void insertCompletions(Set<ICompletion> completions) {
+		IType type = getType(getNodeScope());
+		if (type != null) {
+			type.insertCompletions(completions);
+		}
+		String resolvedType = type != null ? type.getName() : "Any";
+		if (getParent() instanceof ASTFuncDecl) {
+			completions.add(new BaseCompletion(getName(), resolvedType, ((ASTFuncDecl)getParent()).getName(), "function argument"));
+		}
 	}
 	
 }

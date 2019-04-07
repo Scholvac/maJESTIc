@@ -109,13 +109,13 @@ public class DebugContext {
 		{
 			if (mStackTrace.size() <= mLastCommandAtStackLevel) {
 				System.out.println("Create STEP OUT BreakPoint");
-				bp = new DbgBreakPoint(ScriptManager.getBreakPointIdentifier(srcIdentifier), line, mNextAction);
+				bp = new DbgBreakPoint(ScriptManager.normalizeBreakPointIdentifier(srcIdentifier), line, mNextAction);
 			}else
 				mNextAction = NextAction.STEP_OUT;
 			break;
 		}
 		case STEP_INTO:
-			bp = new DbgBreakPoint(ScriptManager.getBreakPointIdentifier(srcIdentifier), line, mNextAction);
+			bp = new DbgBreakPoint(ScriptManager.normalizeBreakPointIdentifier(srcIdentifier), line, mNextAction);
 			break;
 		case STOP:
 			System.out.println("Not yet implemented");

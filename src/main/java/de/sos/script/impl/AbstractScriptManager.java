@@ -11,7 +11,7 @@ import org.slf4j.event.Level;
 
 import de.sos.script.IScript;
 import de.sos.script.IScriptManager;
-import de.sos.script.ScriptSource;
+import de.sos.script.IScriptSource;
 import de.sos.script.ScriptVariable;
 import de.sos.script.ast.CompilationUnit;
 import de.sos.script.ast.lang.IASTConverter;
@@ -22,7 +22,7 @@ public abstract class AbstractScriptManager implements IScriptManager{
 	private static final Logger 			LOG = LoggerFactory.getLogger(AbstractScriptManager.class);
 	
 	@Override
-	public IScript loadScript(final ScriptSource source) {
+	public IScript loadScript(final IScriptSource source) {
 		try {
 			if (source == null) {
 				LOG.warn("Provided invalid content or identifier for {}", this);
@@ -39,7 +39,7 @@ public abstract class AbstractScriptManager implements IScriptManager{
 	
 	
 	@Override
-	public CompilationUnit createCompilationUnit(final ScriptSource source) {
+	public CompilationUnit createCompilationUnit(final IScriptSource source) {
 		IASTConverter conv = getASTConverter();
 		if (conv == null) {
 			LOG.error("Failed to get AST-Converter");

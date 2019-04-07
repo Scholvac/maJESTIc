@@ -74,7 +74,11 @@ public class CompletionUtils {
 		}
 		private boolean isFiltered(IType t) {
 			for (IType pt : possibleTypes) {
-				if (t.inherits(pt)) {
+				try {
+					if (t.inherits(pt)) {
+						return false;
+					}
+				}catch(Exception e) {
 					return false;
 				}
 			}

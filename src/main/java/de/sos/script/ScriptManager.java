@@ -3,8 +3,10 @@ package de.sos.script;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -80,7 +82,7 @@ public class ScriptManager implements IScriptManager {
 	}
 	
 	@Override
-	public IScript loadScript(final ScriptSource source) {
+	public IScript loadScript(final IScriptSource source) {
 		if (source == null)
 			return null;
 		IScriptManager delegate = getManagerForExtension(source.getLanguage());
@@ -91,7 +93,7 @@ public class ScriptManager implements IScriptManager {
 	
 
 	@Override
-	public CompilationUnit createCompilationUnit(final ScriptSource source) {
+	public CompilationUnit createCompilationUnit(final IScriptSource source) {
 		if (source == null)
 			return null;
 		IScriptManager delegate = getManagerForExtension(source.getLanguage());
@@ -111,6 +113,10 @@ public class ScriptManager implements IScriptManager {
 	}
 	@Override
 	public String getLanguage() {
+		throw new UnsupportedOperationException("This method is only available in language specific ScriptManager implementations");
+	}
+	@Override
+	public String createTemplate(IEntryPoint entryPoint) {
 		throw new UnsupportedOperationException("This method is only available in language specific ScriptManager implementations");
 	}
 
@@ -152,9 +158,14 @@ public class ScriptManager implements IScriptManager {
 			return delegate.createDebugExecutor(script);
 		return null;
 	}
+	
 
-
-
+	public String createScriptTemplate(String lang, IEntryPoint ep) {
+		IScriptManager delegate = getManagerForExtension(lang);
+		if (delegate != null)
+			return delegate.createTemplate(ep);
+		return null;
+	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	//											DEBUG												  //
@@ -168,21 +179,28 @@ public class ScriptManager implements IScriptManager {
 	}
 
 	
-	public static final String getBreakPointIdentifier(final String _src) {
-		String src = _src.replace("\\", "/");
-		if (src.length() > 20)
-			return src.substring(src.length()-20);
-		return src;
+//	public static final String getBreakPointIdentifier(final String _src) {
+//		if (_src == null)
+//			return null;
+//		String src = _src.replace("\\", "/");
+//		if (src.length() > 20)
+//			return src.substring(src.length()-20);
+//		return src;
+//	}
+	public static String normalizeBreakPointIdentifier(final String _str) {
+		if (_str == null)
+			return "Unnamed";
+		return _str.replace("\\", "/");
 	}
 	private String getKey(final String _src, int line) {
-		return getBreakPointIdentifier(_src) + ":" + line;
+		return normalizeBreakPointIdentifier(_src) + ":" + line;
 	}
 
 	public BreakPoint addBreakPoint(File file, int line) {
 		return addBreakPoint(file.getAbsolutePath(), line);
 	}
 	public BreakPoint addBreakPoint(final String src, final int line) {
-		BreakPoint bp = new BreakPoint(getBreakPointIdentifier(src), line);
+		BreakPoint bp = new BreakPoint(normalizeBreakPointIdentifier(src), line);
 		addBreakPoint(bp);
 		return bp;
 	}
@@ -201,6 +219,22 @@ public class ScriptManager implements IScriptManager {
 	
 	public Collection<BreakPoint> getAllBreakPoints() { return mBreakPoints.values(); }
 	public void clearAllBreakPoints() { mBreakPoints.clear(); }
+	
+	
+	public List<BreakPoint> getBreakPointsForScript(String identifier) {
+		final String key = normalizeBreakPointIdentifier(identifier);
+		List<BreakPoint> out = new ArrayList<>();
+		for (BreakPoint bp : mBreakPoints.values()) {
+			if (bp.sourceIdentifier.equals(key))
+				out.add(bp);
+		}
+		return out;
+	}
+	
+	
+	
+	
+
 
 
 
